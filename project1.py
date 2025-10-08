@@ -1,5 +1,38 @@
 # Made by Noah Bonner
 
+
+import csv
+
+def read_penguins_tsv(filename):
+    data = []
+    with open(filename, "r") as file:
+        reader = csv.DictReader(file, delimiter="\t")
+        for row in reader:
+            for key, value in row.items():
+                if value == "NA":
+                    row[key] = None
+            if row["bill_length_mm"]:
+                row["bill_length_mm"] = float(row["bill_length_mm"])
+            if row["bill_depth_mm"]:
+                row["bill_depth_mm"] = float(row["bill_depth_mm"])
+            if row["flipper_length_mm"]:
+                row["flipper_length_mm"] = int(row["flipper_length_mm"])
+            if row["body_mass_g"]:
+                row["body_mass_g"] = int(row["body_mass_g"])
+            if row["year"]:
+                row["year"] = int(row["year"])
+            data.append(row)
+    return data
+
+
+
+
+
+
+
+
+
+
 # Test Cases first
 
 import unittest
