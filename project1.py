@@ -3,10 +3,17 @@
 
 import csv
 
+from pathlib import Path
+
+HERE = Path(__file__).parent
+CSV_PATH = HERE / "penguins-2.csv"
+
+
+# READ IN FILE
 def read_penguins_tsv(filename):
     data = []
     with open(filename, "r") as file:
-        reader = csv.DictReader(file, delimiter="\t")
+        reader = csv.DictReader(file)
         for row in reader:
             for key, value in row.items():
                 if value == "NA":
@@ -23,6 +30,89 @@ def read_penguins_tsv(filename):
                 row["year"] = int(row["year"])
             data.append(row)
     return data
+# FIRST CALCULATION
+def calc_avg_flipper_by_species_island(data):
+    totals = {}
+    counts = {}
+
+    for row in data:
+        species = row["species"]
+        island = row["island"]
+        flipper = row["flipper_length_mm"]
+
+        if species and island and flipper:
+            key = (species, island)
+            totals[key] = totals.get(key, 0) + flipper
+            counts[key] = counts.get(key, 0) + 1
+    averages = {}
+    for key in totals:
+        averages[key] = round(totals[key] / counts[key], 2)
+    return averages
+#SECOND CALC
+
+def calc_percent_highmass_shallowbill(data):
+    years = [row["year"] for row in data if row["year"]]
+    if not years:
+        return {}
+    latest = max(years)
+
+    counts = {}
+    matches = {}
+
+    for row in data:
+        if row["year"] != latest:
+            continue
+        sex = row["sex"]
+        mass = row["body_mass_g"]
+        depth = row["bill_depth_mm"]
+        if not sex or not mass or not depth:
+            continue
+        
+        counts[sex] = counts.get(sex, 0) + 1
+        if mass >= 4500 and depth < 18:
+            matches[sex] = matches.get(sex, 0) + 1
+    results = {}
+    for sex in counts:
+        num = matches.get(sex, 0)
+        den = counts[sex]
+        percent = round((num / den) * 100, 2)
+        results[sex] = {"year": latest, "numerator": num, "denominator": den, "percent": percent}
+
+    return results
+
+
+
+#WRITE results to file
+
+def write_dict_to_csv(data_dict, filename, headers):
+
+    with open(filename, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(headers)
+        for key, value in data_dict.items():
+            if isinstance(key, tuple):
+                w.writerow(list(key) + [value])
+            elif isinstance(value, dict):
+                w.writerow([key, value["year"], value["numerator"], value["denominator"], value["percent"]])
+            else:
+                w.writerow([key, value])
+
+def main():
+    filename = "penguins-2.csv"
+    data = read_penguins_tsv(str(CSV_PATH))
+
+    avg_flipper = calc_avg_flipper_by_species_island(data)
+    percent_mass = calc_percent_highmass_shallowbill(data)
+
+    write_dict_to_csv(avg_flipper, "avg_flipper.csv", ["Species", "Island", "Average_Flipper_mm"])
+    write_dict_to_csv(percent_mass, "percent_mass.csv", ["Sex", "Year", "Numerator", "Denominator", "Percent"])
+
+if __name__ == "__main__":
+    main()
+
+    
+
+
 
 
 
