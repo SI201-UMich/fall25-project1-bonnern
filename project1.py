@@ -1,4 +1,7 @@
 # Made by Noah Bonner
+# student id: 7318 1748
+# email: bonnern@umich.edu
+# Collaborators: Worked by myself, used Gen Ai for some assistance, such as helping me with some errors reading in the code, and CSV Path was used to help me. Also helped me with an outline of the project, used it for some debugging too
 
 
 import csv
@@ -10,14 +13,14 @@ CSV_PATH = HERE / "penguins-2.csv"
 
 
 # READ IN FILE
-def read_penguins_tsv(filename):
+def read_penguins_csv(filename):
     data = []
     with open(filename, "r") as file:
         reader = csv.DictReader(file)
         for row in reader:
-            for key, value in row.items():
-                if value == "NA":
-                    row[key] = None
+            for k, v in row.items():
+                if v == "NA":
+                    row[k] = None
             if row["bill_length_mm"]:
                 row["bill_length_mm"] = float(row["bill_length_mm"])
             if row["bill_depth_mm"]:
@@ -50,7 +53,7 @@ def calc_avg_flipper_by_species_island(data):
     return averages
 #SECOND CALC
 
-def calc_percent_highmass_shallowbill(data):
+def calc_pct_highmass_shallowbill_by_sex_latest_year(data, mass_threshold=4500, depth_threshold=18.0):
     years = [row["year"] for row in data if row["year"]]
     if not years:
         return {}
@@ -69,7 +72,7 @@ def calc_percent_highmass_shallowbill(data):
             continue
         
         counts[sex] = counts.get(sex, 0) + 1
-        if mass >= 4500 and depth < 18:
+        if mass >= mass_threshold and depth < depth_threshold:
             matches[sex] = matches.get(sex, 0) + 1
     results = {}
     for sex in counts:
@@ -99,10 +102,10 @@ def write_dict_to_csv(data_dict, filename, headers):
 
 def main():
     filename = "penguins-2.csv"
-    data = read_penguins_tsv(str(CSV_PATH))
+    data = read_penguins_csv(str(CSV_PATH))
 
     avg_flipper = calc_avg_flipper_by_species_island(data)
-    percent_mass = calc_percent_highmass_shallowbill(data)
+    percent_mass = calc_pct_highmass_shallowbill_by_sex_latest_year(data)
 
     write_dict_to_csv(avg_flipper, "avg_flipper.csv", ["Species", "Island", "Average_Flipper_mm"])
     write_dict_to_csv(percent_mass, "percent_mass.csv", ["Sex", "Year", "Numerator", "Denominator", "Percent"])
@@ -115,20 +118,12 @@ if __name__ == "__main__":
 
 
 
-
-
-
-
-
-
-
-
-# Test Cases first
+# Test Cases 
 
 import unittest
 
 class TestAvgFlipperBySpeciesIsland(unittest.TestCase):
-    def est_usual_multiple_groups(self):
+    def test_usual_multiple_groups(self):
         data = [
             {"species": "Adelie", "island": "Biscoe",   "flipper_length_mm": 180},
             {"species": "Adelie", "island": "Biscoe",   "flipper_length_mm": 200},
@@ -186,8 +181,8 @@ class TestPctHighMassShallowBillLatestYear(unittest.TestCase):
 
     def test_usual_only_one_sex_in_latest_year(self):
         data = [
-            {"sex": "female", "body_mass_g": 4600, "bill_depth_mm": 17.5, "year": 2009},  # qualifies
-            {"sex": "female", "body_mass_g": 4300, "bill_depth_mm": 17.5, "year": 2009},  # not qualify
+            {"sex": "female", "body_mass_g": 4600, "bill_depth_mm": 17.5, "year": 2009},  # yes
+            {"sex": "female", "body_mass_g": 4300, "bill_depth_mm": 17.5, "year": 2009},  # no
             {"sex": "male",   "body_mass_g": 6000, "bill_depth_mm": 17.0, "year": 2008},  # older year
         ]
         res = calc_pct_highmass_shallowbill_by_sex_latest_year(data)
@@ -201,18 +196,18 @@ class TestPctHighMassShallowBillLatestYear(unittest.TestCase):
     def test_edge_latest_year_rows_invalid(self):
         data = [
             {"sex": "male", "body_mass_g": 4800, "bill_depth_mm": 17.5, "year": 2008},
-            {"sex": None,   "body_mass_g": 5000, "bill_depth_mm": 17.0, "year": 2009},  # invalid (no sex)
-            {"sex": "male", "body_mass_g": None, "bill_depth_mm": 17.0, "year": 2009},  # invalid (no mass)
+            {"sex": None,   "body_mass_g": 5000, "bill_depth_mm": 17.0, "year": 2009},  # shouldnt work no sex
+            {"sex": "male", "body_mass_g": None, "bill_depth_mm": 17.0, "year": 2009},  # shouldnt work no mass
         ]
         res = calc_pct_highmass_shallowbill_by_sex_latest_year(data)
         self.assertEqual(res, {})
 
     def test_edge_threshold_boundaries(self):
         data = [
-            {"sex": "male",   "body_mass_g": 4500, "bill_depth_mm": 17.99, "year": 2009},  # qualifies
-            {"sex": "male",   "body_mass_g": 4499, "bill_depth_mm": 17.00, "year": 2009},  # too light
+            {"sex": "male",   "body_mass_g": 4500, "bill_depth_mm": 17.99, "year": 2009},  # yes
+            {"sex": "male",   "body_mass_g": 4499, "bill_depth_mm": 17.00, "year": 2009},  # no too light
             {"sex": "male",   "body_mass_g": 5000, "bill_depth_mm": 18.00, "year": 2009},  # depth not < 18
-            {"sex": "female", "body_mass_g": 4500, "bill_depth_mm": 17.00, "year": 2009},  # qualifies
+            {"sex": "female", "body_mass_g": 4500, "bill_depth_mm": 17.00, "year": 2009},  # yes
         ]
         res = calc_pct_highmass_shallowbill_by_sex_latest_year(data, 4500, 18.0)
         self.assertEqual(res["male"]["numerator"], 1)
